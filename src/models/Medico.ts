@@ -61,10 +61,17 @@ const medicoSchema = new Schema(
     ],
 
     contacto: {
-      telefono: String,
-      email: String,
-      match: [/^[0-9\-+ ]+$/, "El teléfono solo admite números, guiones y el signo +"],
-      trim: true
+      telefono: {
+        type: String,
+        match: [/^[0-9\-+ ]+$/, "El teléfono solo admite números, guiones y el signo +"],
+        trim: true
+      },
+      email: {
+        type: String,
+        match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/, "Debe ser una dirección de email válida"],
+        trim: true,
+        lowercase: true
+      }
     },
 
     activo: {
