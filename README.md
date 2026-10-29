@@ -27,6 +27,7 @@ Desarrollar un sistema que permita administrar:
 - MongoDB Atlas
 - dotenv
 - tsx
+- Inquirer
 - Bash
 - Windows Batch
 - MongoDB Command Line Database Tools
@@ -111,6 +112,8 @@ Campos principales:
 
 La matrícula, disponibilidad, información de contacto y obras sociales aceptadas se almacenan mediante **Embedding**.
 
+La disponibilidad se registra mediante fechas concretas en formato `AAAA-MM-DD` y rangos horarios `HH:mm`. Al reservar un turno, el horario seleccionado se elimina de la disponibilidad del médico dentro de la misma transacción utilizada para crear el turno.
+
 Ejemplo:
 
 ```json
@@ -125,9 +128,9 @@ Ejemplo:
   "especialidad": "Cardiologia",
   "disponibilidad": [
     {
-      "dia": "lunes",
-      "horaDesde": "08:00",
-      "horaHasta": "12:00"
+      "dia": "2026-11-10",
+      "horaDesde": "10:30",
+      "horaHasta": "11:00"
     }
   ],
   "obrasSocialesAceptadas": [
@@ -162,6 +165,14 @@ Campos principales:
 
 Los campos `pacienteId` y `medicoId` almacenan referencias a documentos pertenecientes a las colecciones `pacientes` y `medicos`.
 
+El campo `fechaHora` se almacena como texto en formato:
+
+```text
+AAAA-MM-DDTHH:mm:00
+```
+
+Este formato coincide con los horarios disponibles registrados en la agenda del médico y es validado por el esquema de Mongoose.
+
 De esta forma se implementa **Linking** entre las colecciones.
 
 Ejemplo:
@@ -170,7 +181,7 @@ Ejemplo:
 {
   "pacienteId": "ObjectId",
   "medicoId": "ObjectId",
-  "fechaHora": "2026-11-10T13:30:00.000Z",
+  "fechaHora": "2026-11-10T10:30:00",
   "motivo": "Control cardiologico",
   "estado": "pendiente",
   "activo": true,
@@ -206,6 +217,23 @@ La colección `turnos` contiene referencias a:
 Esto permite evitar duplicación de información y mantener separados los datos de cada entidad.
 
 Mongoose permite recuperar la información relacionada mediante `populate()`.
+
+---
+
+# Transacciones y reserva de turnos
+
+La creación de un turno se realiza mediante una **transacción de MongoDB** utilizando sesiones de Mongoose.
+
+Dentro de la misma operación:
+
+1. se verifica que el paciente exista y se encuentre activo;
+2. se verifica que el médico exista, esté activo y tenga disponible el horario solicitado;
+3. el horario seleccionado se elimina de la disponibilidad del médico mediante `$pull`;
+4. se crea el nuevo turno.
+
+Si cualquiera de estas operaciones falla, la transacción se revierte mediante `abortTransaction()`.
+
+De esta forma, la reserva del turno y la actualización de la disponibilidad del médico se realizan de manera atómica, evitando estados inconsistentes o reservas simultáneas sobre el mismo horario.
 
 ---
 
@@ -298,6 +326,49 @@ PATCH  /api/turnos/:id
 DELETE /api/turnos/:id
 ```
 
+Las operaciones `PATCH` permiten realizar actualizaciones parciales. En campos embebidos puede utilizarse notación de punto, por ejemplo:
+
+```json
+{
+  "contacto.telefono": "2235557777"
+}
+```
+
+De esta manera se modifica únicamente el teléfono sin reemplazar el resto del subdocumento `contacto`.
+
+---
+
+# Cliente de consola
+
+El proyecto incluye un cliente interactivo de consola implementado con **Inquirer**:
+
+```text
+src/cli_crud.ts
+```
+
+El CLI permite operar sobre la API sin utilizar herramientas externas como Postman.
+
+Desde el menú pueden realizarse operaciones CRUD sobre:
+
+- pacientes;
+- médicos;
+- turnos.
+
+También permite:
+
+- cargar disponibilidad horaria de los médicos;
+- seleccionar un horario disponible al crear un turno;
+- modificar parcialmente determinados campos mediante `PATCH`;
+- realizar bajas lógicas;
+- consultar registros por ID;
+- listar registros activos.
+
+Para utilizarlo, la API debe estar ejecutándose en:
+
+```text
+http://localhost:3002
+```
+
 ---
 
 # Ejemplo de creación de un paciente
@@ -360,7 +431,7 @@ curl -X POST http://localhost:3002/api/turnos \
 -d '{
   "pacienteId":"ID_PACIENTE",
   "medicoId":"ID_MEDICO",
-  "fechaHora":"2026-11-10T10:30:00-03:00",
+  "fechaHora":"2026-11-10T10:30:00",
   "motivo":"Control cardiologico"
 }'
 ```
@@ -558,7 +629,14 @@ Conexión exitosa a MongoDB Atlas
 Servidor ejecutándose en http://localhost:3002
 ```
 
+Con la API en ejecución, el cliente de consola puede iniciarse directamente con:
+
+```bash
+npx tsx src/cli_crud.ts
+```
+
 ---
+
 
 # Estructura del proyecto
 
@@ -575,6 +653,7 @@ tpi-turnos-medicos/
 │   │   ├── pacientes.routes.ts
 │   │   ├── medicos.routes.ts
 │   │   └── turnos.routes.ts
+│   ├── cli_crud.ts
 │   └── index.ts
 ├── scripts/
 │   ├── backup.sh
@@ -646,6 +725,8 @@ Los respaldos se almacenan dentro de:
 ```text
 resguardos_tpi/
 ```
+
+Ambos scripts utilizan el mismo directorio base para mantener un criterio uniforme entre Linux/macOS y Windows.
 
 Ejemplo:
 
@@ -912,6 +993,8 @@ La conexión con MongoDB Atlas se obtiene mediante:
 ```text
 MONGODB_URI
 ```
+
+Las credenciales reales no deben escribirse en archivos versionados ni incluirse en commits.
 
 ---
 

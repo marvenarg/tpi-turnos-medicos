@@ -200,7 +200,8 @@ async function modificarRecurso(nombreRecurso: string, rutaBase: string) {
 
         if (respuestas.nombre) camposActualizados.nombre = respuestas.nombre;
         if (respuestas.apellido) camposActualizados.apellido = respuestas.apellido;
-        if (respuestas.telefono) camposActualizados.contacto = { telefono: respuestas.telefono };
+        // if (respuestas.telefono) camposActualizados.contacto = { telefono: respuestas.telefono };
+        if (respuestas.telefono) camposActualizados["contacto.telefono"] = respuestas.telefono;
     } else if (nombreRecurso === 'TURNOS') {
         const { estado } = await inquirer.prompt([
             {
