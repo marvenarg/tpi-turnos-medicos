@@ -15,8 +15,10 @@ const turnoSchema = new Schema(
     },
 
     fechaHora: {
-      type: Date,
-      required: true
+      type: String, 
+      required: true,
+      trim: true,
+      match: [/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):([0-5]\d):00$/, "Formato inválido. Use YYYY-MM-DDTHH:mm:00"]
     },
 
     motivo: {

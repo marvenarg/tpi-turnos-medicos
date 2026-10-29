@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Router } from "express";
 
 import { Turno } from "../models/Turno.js";
@@ -6,50 +7,74 @@ import { Medico } from "../models/Medico.js";
 
 const router = Router();
 
-// Create
+// Create con Transacciones (ACID) y control de concurrencia
 router.post("/", async (req, res) => {
-  try {
-    const {
-      pacienteId,
-      medicoId,
-      fechaHora,
-      motivo
-    } = req.body;
+  // 1. Iniciar la sesión y la transacción
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    const { pacienteId, medicoId, fechaHora, motivo } = req.body;
+
+    // Verificar existencia del paciente 
     const paciente = await Paciente.findOne({
       _id: pacienteId,
       activo: true
-    });
+    }).session(session);
 
     if (!paciente) {
-      return res.status(404).json({
-        error: "Paciente inexistente o inactivo"
-      });
+      throw new Error("Paciente inexistente o inactivo");
     }
 
-    const medico = await Medico.findOne({
-      _id: medicoId,
-      activo: true
-    });
+    // Extrae el día y la hora de la disponibilidad del médico para mostrarlo por consola de forma simple
+    const [dia, restoHora] = fechaHora.split("T"); // corta el formato de fecha y hora
+    const horaDesde = restoHora.substring(0, 5); // formatea la hora  "00:00"
 
-    if (!medico) {
-      return res.status(404).json({
-        error: "Médico inexistente o inactivo"
-      });
+    //  Busca al médico y remueve la disponibilidad de ese turno ($pull)
+    // Si findOneAndUpdate retorna null, significa que el médico no existe o ese horario ya fue ocupado
+    const medicoActualizado = await Medico.findOneAndUpdate(
+      {
+        _id: medicoId,
+        activo: true,
+        "disponibilidad.dia": dia,
+        "disponibilidad.horaDesde": horaDesde
+      },
+      {
+        $pull: { disponibilidad: { dia: dia, horaDesde: horaDesde } }
+      },
+      { session, new: true }
+    );
+
+    if (!medicoActualizado) {
+      throw new Error("Médico no encontrado o el horario solicitado ya fue ocupado.");
     }
 
-    const turno = await Turno.create({
-      pacienteId,
-      medicoId,
-      fechaHora,
-      motivo
-    });
+    //  Crear el turno (pasando el array y la opción { session })
+    const [turno] = await Turno.create(
+      [
+        {
+          pacienteId,
+          medicoId,
+          fechaHora,
+          motivo
+        }
+      ],
+      { session }
+    );
 
+    // Confirma la transacción
+    await session.commitTransaction();
     res.status(201).json(turno);
-  } catch {
+
+  } catch (error: any) {
+    // Si falla, se revierte todo 
+    await session.abortTransaction();
     res.status(400).json({
-      error: "No se pudo crear el turno"
+      error: error.message || "No se pudo crear el turno"
     });
+  } finally {
+    
+    session.endSession();
   }
 });
 
