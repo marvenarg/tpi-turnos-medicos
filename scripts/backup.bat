@@ -15,7 +15,7 @@ REM desde otra carpeta.
 for %%I in ("%~dp0..") do set "PROJECT_ROOT=%%~fI"
 
 REM Carpeta base de respaldos
-set "BASE=%PROJECT_ROOT%\resguardos_db"
+set "BASE=%PROJECT_ROOT%\resguardos_tpi"
 
 REM Obtiene fecha y hora con formato estable:
 REM YYYY-MM-DD_HH-MM-SS

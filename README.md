@@ -621,7 +621,7 @@ El archivo `.gitignore` debe contener:
 node_modules/
 dist/
 .env
-resguardos_db/
+resguardos_tpi/
 ```
 
 ---
@@ -735,7 +735,7 @@ Ambos realizan el mismo flujo general:
 Los respaldos se almacenan dentro de:
 
 ```text
-resguardos_db/
+resguardos_tpi/
 ```
 
 Ambos scripts utilizan el mismo directorio base para mantener un criterio uniforme entre Linux/macOS y Windows.
@@ -743,7 +743,7 @@ Ambos scripts utilizan el mismo directorio base para mantener un criterio unifor
 Ejemplo:
 
 ```text
-resguardos_db/
+resguardos_tpi/
 ├── backup_2026-10-27_12-45-10.tar.zst
 ├── backup_2026-10-27_15-30-25.tar.zst
 └── backup_2026-10-27_20-12-41.tar.zst
@@ -813,7 +813,7 @@ Desde la raíz del proyecto:
 El archivo generado tendrá un formato similar a:
 
 ```text
-resguardos_db/backup_2026-10-27_18-30-45.tar.zst
+resguardos_tpi/backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -877,7 +877,7 @@ El script de Windows:
    `YYYY-MM-DD_HH-MM-SS`.
 3. Comprueba que `MONGODB_URI` esté definida.
 4. Comprueba que `mongodump`, `tar` y `zstd` estén disponibles.
-5. Crea un directorio temporal dentro de `resguardos_db`.
+5. Crea un directorio temporal dentro de `resguardos_tpi`.
 6. Ejecuta `mongodump`.
 7. Genera un archivo `.tar`.
 8. Comprime el archivo mediante Zstandard.
@@ -888,7 +888,7 @@ El script de Windows:
 El resultado tendrá un formato similar a:
 
 ```text
-resguardos_db\backup_2026-10-27_18-30-45.tar.zst
+resguardos_tpi\backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -898,7 +898,7 @@ resguardos_db\backup_2026-10-27_18-30-45.tar.zst
 ## Linux/macOS
 
 ```bash
-tar --zstd -tf resguardos_db/backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_tpi/backup_FECHA_HORA.tar.zst
 ```
 
 ## Windows
@@ -906,7 +906,7 @@ tar --zstd -tf resguardos_db/backup_FECHA_HORA.tar.zst
 Si la versión instalada de `tar` soporta Zstandard:
 
 ```bat
-tar --zstd -tf resguardos_db\backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_tpi\backup_FECHA_HORA.tar.zst
 ```
 
 ---
@@ -919,7 +919,7 @@ tar --zstd -tf resguardos_db\backup_FECHA_HORA.tar.zst
 mkdir restauracion
 
 tar --zstd -xf \
-  resguardos_db/backup_FECHA_HORA.tar.zst \
+  resguardos_tpi/backup_FECHA_HORA.tar.zst \
   -C restauracion
 ```
 
@@ -928,7 +928,7 @@ tar --zstd -xf \
 ```bat
 mkdir restauracion
 
-tar --zstd -xf resguardos_db\backup_FECHA_HORA.tar.zst -C restauracion
+tar --zstd -xf resguardos_tpi\backup_FECHA_HORA.tar.zst -C restauracion
 ```
 
 Luego podrán encontrarse los archivos BSON y de metadatos generados originalmente por `mongodump`.

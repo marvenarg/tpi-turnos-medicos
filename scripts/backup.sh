@@ -4,7 +4,7 @@ set -e
 
 FECHA_HORA=$(date +%Y-%m-%d_%H-%M-%S)
 
-BASE="./resguardos_db"
+BASE="./resguardos_tpi"
 TEMP="$BASE/$FECHA_HORA"
 ARCHIVO="$BASE/backup_$FECHA_HORA.tar.zst"
 
