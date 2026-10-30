@@ -3,3 +3,4 @@ dist/
 .env
 resguardos_tpi/
 resguardos_db/
+.test_state
