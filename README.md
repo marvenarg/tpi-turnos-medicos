@@ -30,6 +30,9 @@ Desarrollar un sistema que permita administrar:
 - Inquirer
 - Bash
 - Windows Batch
+- PowerShell
+- curl
+- jq
 - MongoDB Command Line Database Tools
 - `mongodump`
 - `mongorestore`
@@ -668,8 +671,10 @@ tpi-turnos-medicos/
 │   ├── cli_crud.ts
 │   └── index.ts
 ├── scripts/
-│   ├── backup.sh
-│   └── backup.bat
+│   ├── backup_linux.sh
+│   ├── backup_windows.bat
+│   ├── test_crud_linux.sh
+│   └── test_crud_windows.ps1
 ├── .env
 ├── .env.example
 ├── .gitignore
@@ -678,6 +683,129 @@ tpi-turnos-medicos/
 ├── tsconfig.json
 └── README.md
 ```
+
+---
+
+# Pruebas automatizadas del CRUD
+
+El proyecto incluye scripts de prueba automatizada para verificar el funcionamiento de las operaciones CRUD contra la API.
+
+Los scripts disponibles son:
+
+```text
+scripts/
+├── test_crud_linux.sh
+└── test_crud_windows.ps1
+```
+
+Las pruebas reutilizan datos identificados como TEST para evitar duplicar pacientes, médicos y turnos principales en ejecuciones sucesivas.
+
+El flujo general incluye:
+
+1. verificación de disponibilidad de la API;
+2. creación o reutilización de 5 pacientes TEST;
+3. creación o reutilización de 5 médicos TEST;
+4. creación o reutilización de 5 turnos TEST;
+5. evidencia de los registros obtenidos mediante consultas;
+6. pruebas `GET` por ID;
+7. pruebas `PATCH` sobre paciente, médico y turno;
+8. creación de un turno especial nuevo para probar la baja lógica;
+9. ejecución de `DELETE`;
+10. validación de que el turno quede con:
+    - `estado: "cancelado"`;
+    - `activo: false`;
+    - `fechaBaja` registrada;
+11. verificación de que el turno dado de baja ya no aparezca en el listado de turnos activos;
+12. presentación de un resumen final con el resultado de las pruebas.
+
+Los scripts muestran evidencia en consola de los documentos creados o reutilizados, incluyendo identificadores y datos representativos.
+
+## Prueba CRUD en Linux
+
+El script se encuentra en:
+
+```text
+scripts/test_crud_linux.sh
+```
+
+### Requisitos
+
+Deben estar disponibles:
+
+```text
+bash
+curl
+jq
+```
+
+En Debian y distribuciones derivadas pueden instalarse mediante:
+
+```bash
+sudo apt install curl jq
+```
+
+Puede ser necesario otorgar permisos de ejecución:
+
+```bash
+chmod +x scripts/test_crud_linux.sh
+```
+
+Con la API ejecutándose en `http://localhost:3002`, la prueba puede iniciarse desde la raíz del proyecto:
+
+```bash
+./scripts/test_crud_linux.sh
+```
+
+También puede utilizarse una URL diferente definiendo la variable `API_URL`:
+
+```bash
+API_URL=http://localhost:3002 ./scripts/test_crud_linux.sh
+```
+
+## Prueba CRUD en Windows
+
+El script se encuentra en:
+
+```text
+scripts\test_crud_windows.ps1
+```
+
+La versión de Windows utiliza PowerShell y no requiere `jq`, ya que procesa las respuestas JSON mediante las herramientas nativas `Invoke-RestMethod` y `ConvertTo-Json`.
+
+Con la API en ejecución puede iniciarse desde PowerShell:
+
+```powershell
+.\scripts\test_crud_windows.ps1
+```
+
+Si la política de ejecución de PowerShell impide iniciar el script, puede habilitarse temporalmente para la sesión actual:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\test_crud_windows.ps1
+```
+
+Este cambio afecta únicamente al proceso actual de PowerShell.
+
+## Resultado esperado
+
+Al finalizar correctamente, ambos scripts muestran un resumen similar a:
+
+```text
+============================================================
+PRUEBA CRUD FINALIZADA CORRECTAMENTE
+============================================================
+Pacientes TEST disponibles : 5
+Médicos TEST disponibles   : 5
+Turnos TEST principales    : 5
+GET                        : OK
+PATCH                      : OK
+DELETE lógico              : OK
+============================================================
+```
+
+La prueba de baja lógica también muestra evidencia del turno antes y después del `DELETE`, permitiendo comprobar los cambios de `estado`, `activo`, `fechaBaja` y `updatedAt`.
+
 
 ---
 
@@ -715,8 +843,8 @@ El proyecto incluye dos scripts:
 
 ```text
 scripts/
-├── backup.sh
-└── backup.bat
+├── backup_linux.sh
+└── backup_windows.bat
 ```
 
 Ambos realizan el mismo flujo general:
@@ -762,7 +890,7 @@ Cada respaldo se guarda dentro de una subcarpeta identificada por fecha y hora. 
 El script se encuentra en:
 
 ```text
-scripts/backup.sh
+scripts/backup_linux.sh
 ```
 
 ## Requisitos
@@ -803,7 +931,7 @@ export $(grep -v '^#' .env | xargs)
 Puede ser necesario otorgar permisos de ejecución:
 
 ```bash
-chmod +x scripts/backup.sh
+chmod +x scripts/backup_linux.sh
 ```
 
 ## Ejecución
@@ -811,7 +939,7 @@ chmod +x scripts/backup.sh
 Desde la raíz del proyecto:
 
 ```bash
-./scripts/backup.sh
+./scripts/backup_linux.sh
 ```
 
 El archivo generado tendrá un formato similar a:
@@ -827,7 +955,7 @@ resguardos_tpi/2026-10-27_18-30-45/backup_2026-10-27_18-30-45.tar.zst
 El script se encuentra en:
 
 ```text
-scripts\backup.bat
+scripts\backup_windows.bat
 ```
 
 ## Requisitos
@@ -869,7 +997,7 @@ set "MONGODB_URI=mongodb+srv://USUARIO:PASSWORD@cluster.mongodb.net/turnos_medic
 Desde la raíz del proyecto:
 
 ```bat
-scripts\backup.bat
+scripts\backup_windows.bat
 ```
 
 ## Funcionamiento
