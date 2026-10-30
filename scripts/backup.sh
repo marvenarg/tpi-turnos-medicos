@@ -1,5 +1,14 @@
 #!/bin/bash
-
+echo 
+echo "============================================================"
+echo "Backup MongoDB Atlas - Linux"
+echo "Requiere:"
+echo "  - mongodump"
+echo "  - tar"
+echo "  - zstd"
+echo "  - variable de entorno MONGODB_URI"
+echo "============================================================"
+echo 
 set -e
 
 FECHA_HORA=$(date +%Y-%m-%d_%H-%M-%S)
