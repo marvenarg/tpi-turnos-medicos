@@ -22,9 +22,10 @@ REM YYYY-MM-DD_HH-MM-SS
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm-ss"') do set "FECHA_HORA=%%I"
 
 REM Rutas de trabajo
-set "TEMP=%BASE%\%FECHA_HORA%"
-set "TARFILE=%BASE%\backup_%FECHA_HORA%.tar"
-set "ARCHIVO=%BASE%\backup_%FECHA_HORA%.tar.zst"
+set "DESTINO=%BASE%\%FECHA_HORA%"
+set "TEMP=%DESTINO%\dump"
+set "TARFILE=%DESTINO%\backup_%FECHA_HORA%.tar"
+set "ARCHIVO=%DESTINO%\backup_%FECHA_HORA%.tar.zst"
 
 echo.
 echo ==========================================
@@ -69,7 +70,7 @@ if errorlevel 1 (
 )
 
 REM ------------------------------------------------------------
-REM Crear directorio temporal
+REM Crear directorios de trabajo
 REM ------------------------------------------------------------
 
 if not exist "%BASE%" (
@@ -79,13 +80,13 @@ if not exist "%BASE%" (
 mkdir "%TEMP%"
 
 if errorlevel 1 (
-    echo ERROR: No se pudo crear el directorio temporal.
+    echo ERROR: No se pudo crear el directorio del backup.
     exit /b 1
 )
 
 echo Fecha y hora: %FECHA_HORA%
-echo Directorio temporal:
-echo %TEMP%
+echo Directorio del respaldo:
+echo %DESTINO%
 echo.
 
 REM ------------------------------------------------------------
@@ -110,7 +111,7 @@ REM ------------------------------------------------------------
 echo.
 echo Generando archivo TAR...
 
-tar -cf "%TARFILE%" -C "%BASE%" "%FECHA_HORA%"
+tar -cf "%TARFILE%" -C "%DESTINO%" "dump"
 
 if errorlevel 1 (
     echo ERROR: No se pudo generar el archivo TAR.

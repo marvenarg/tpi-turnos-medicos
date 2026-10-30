@@ -724,13 +724,14 @@ Ambos realizan el mismo flujo general:
 1. Verifican que exista la variable `MONGODB_URI`.
 2. Verifican las herramientas necesarias.
 3. Obtienen fecha y hora.
-4. Crean un directorio temporal de trabajo.
-5. Ejecutan `mongodump` contra MongoDB Atlas.
-6. Generan los archivos BSON y sus metadatos.
-7. Crean un archivo TAR.
-8. Comprimen el respaldo mediante Zstandard.
-9. Generan un archivo `.tar.zst`.
-10. Eliminan los archivos temporales.
+4. Crean una subcarpeta dentro de `resguardos_tpi` con ese valor.
+5. Crean dentro de ella un directorio temporal de trabajo.
+6. Ejecutan `mongodump` contra MongoDB Atlas.
+7. Generan los archivos BSON y sus metadatos.
+8. Crean un archivo TAR.
+9. Comprimen el respaldo mediante Zstandard.
+10. Generan un archivo `.tar.zst` dentro de la subcarpeta correspondiente.
+11. Eliminan los archivos temporales.
 
 Los respaldos se almacenan dentro de:
 
@@ -744,12 +745,15 @@ Ejemplo:
 
 ```text
 resguardos_tpi/
-├── backup_2026-10-27_12-45-10.tar.zst
-├── backup_2026-10-27_15-30-25.tar.zst
-└── backup_2026-10-27_20-12-41.tar.zst
+├── 2026-10-27_12-45-10/
+│   └── backup_2026-10-27_12-45-10.tar.zst
+├── 2026-10-27_15-30-25/
+│   └── backup_2026-10-27_15-30-25.tar.zst
+└── 2026-10-27_20-12-41/
+    └── backup_2026-10-27_20-12-41.tar.zst
 ```
 
-La utilización de fecha y hora permite realizar múltiples respaldos durante el mismo día sin sobrescribir backups anteriores.
+Cada respaldo se guarda dentro de una subcarpeta identificada por fecha y hora. De esta forma se cumple con la estructura requerida por el TPI y se permite realizar múltiples respaldos durante el mismo día sin sobrescribir backups anteriores.
 
 ---
 
@@ -813,7 +817,7 @@ Desde la raíz del proyecto:
 El archivo generado tendrá un formato similar a:
 
 ```text
-resguardos_tpi/backup_2026-10-27_18-30-45.tar.zst
+resguardos_tpi/2026-10-27_18-30-45/backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -877,18 +881,19 @@ El script de Windows:
    `YYYY-MM-DD_HH-MM-SS`.
 3. Comprueba que `MONGODB_URI` esté definida.
 4. Comprueba que `mongodump`, `tar` y `zstd` estén disponibles.
-5. Crea un directorio temporal dentro de `resguardos_tpi`.
-6. Ejecuta `mongodump`.
-7. Genera un archivo `.tar`.
-8. Comprime el archivo mediante Zstandard.
-9. Genera el archivo final `.tar.zst`.
-10. Elimina el archivo TAR y el directorio temporal.
-11. Si ocurre un error, intenta limpiar los archivos temporales creados durante la ejecución.
+5. Crea una subcarpeta dentro de `resguardos_tpi` identificada por fecha y hora.
+6. Crea dentro de ella un directorio temporal `dump`.
+7. Ejecuta `mongodump`.
+8. Genera un archivo `.tar` dentro de la subcarpeta del respaldo.
+9. Comprime el archivo mediante Zstandard.
+10. Genera el archivo final `.tar.zst` dentro de la misma subcarpeta.
+11. Elimina el archivo TAR y el directorio temporal `dump`.
+12. Si ocurre un error, intenta limpiar los archivos temporales creados durante la ejecución.
 
 El resultado tendrá un formato similar a:
 
 ```text
-resguardos_tpi\backup_2026-10-27_18-30-45.tar.zst
+resguardos_tpi\2026-10-27_18-30-45\backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -898,7 +903,7 @@ resguardos_tpi\backup_2026-10-27_18-30-45.tar.zst
 ## Linux/macOS
 
 ```bash
-tar --zstd -tf resguardos_tpi/backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_tpi/FECHA_HORA/backup_FECHA_HORA.tar.zst
 ```
 
 ## Windows
@@ -906,7 +911,7 @@ tar --zstd -tf resguardos_tpi/backup_FECHA_HORA.tar.zst
 Si la versión instalada de `tar` soporta Zstandard:
 
 ```bat
-tar --zstd -tf resguardos_tpi\backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_tpi\FECHA_HORA\backup_FECHA_HORA.tar.zst
 ```
 
 ---
@@ -919,7 +924,7 @@ tar --zstd -tf resguardos_tpi\backup_FECHA_HORA.tar.zst
 mkdir restauracion
 
 tar --zstd -xf \
-  resguardos_tpi/backup_FECHA_HORA.tar.zst \
+  resguardos_tpi/FECHA_HORA/backup_FECHA_HORA.tar.zst \
   -C restauracion
 ```
 
@@ -928,7 +933,7 @@ tar --zstd -xf \
 ```bat
 mkdir restauracion
 
-tar --zstd -xf resguardos_tpi\backup_FECHA_HORA.tar.zst -C restauracion
+tar --zstd -xf resguardos_tpi\FECHA_HORA\backup_FECHA_HORA.tar.zst -C restauracion
 ```
 
 Luego podrán encontrarse los archivos BSON y de metadatos generados originalmente por `mongodump`.
