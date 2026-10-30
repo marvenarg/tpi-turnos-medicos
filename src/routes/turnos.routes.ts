@@ -105,7 +105,7 @@ router.get("/:id", async (req, res) => {
 
     if (!turno) {
       return res.status(404).json({
-        error: "Paciente no encontrado"
+        error: "Turno no encontrado"
       });
     }
 

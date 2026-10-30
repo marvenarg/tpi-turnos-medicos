@@ -39,6 +39,7 @@ const medicoSchema = new Schema(
       required: true
     },
 
+    /*
     disponibilidad: [
       {
         dia: { type: String, trim: true },
@@ -49,6 +50,35 @@ const medicoSchema = new Schema(
         horaHasta: { 
           type: String, 
           match: [/^([01]\d|2[0-3]):([0-5]\d)$/, "El formato debe ser HH:mm (ej. 13:00)"] 
+        }
+      }
+    ],
+    */
+    
+    // Esto debería evitar el ingreso de strings como "Lunes" en lugar del formato de Fecha.
+    disponibilidad: [
+      {
+        dia: {
+          type: String,
+          trim: true,
+          match: [
+            /^\d{4}-\d{2}-\d{2}$/,
+            "El formato debe ser AAAA-MM-DD (ej. 2026-11-05)"
+          ]
+        },
+        horaDesde: { 
+          type: String, 
+          match: [
+            /^([01]\d|2[0-3]):([0-5]\d)$/,
+            "El formato debe ser HH:mm (ej. 09:30)"
+          ] 
+        },
+        horaHasta: { 
+          type: String, 
+          match: [
+            /^([01]\d|2[0-3]):([0-5]\d)$/,
+            "El formato debe ser HH:mm (ej. 13:00)"
+          ] 
         }
       }
     ],

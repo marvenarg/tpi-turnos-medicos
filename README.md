@@ -112,7 +112,7 @@ Campos principales:
 
 La matrícula, disponibilidad, información de contacto y obras sociales aceptadas se almacenan mediante **Embedding**.
 
-La disponibilidad se registra mediante fechas concretas en formato `AAAA-MM-DD` y rangos horarios `HH:mm`. Al reservar un turno, el horario seleccionado se elimina de la disponibilidad del médico dentro de la misma transacción utilizada para crear el turno.
+La disponibilidad se registra mediante fechas concretas en formato `AAAA-MM-DD` y rangos horarios `HH:mm`. El esquema de Mongoose valida que `dia` respete el formato de fecha y que `horaDesde` y `horaHasta` respeten el formato `HH:mm`, evitando valores de texto como `"Lunes"` o `"Martes"`. Al reservar un turno, el horario seleccionado se elimina de la disponibilidad del médico dentro de la misma transacción utilizada para crear el turno.
 
 Ejemplo:
 
@@ -336,6 +336,8 @@ Las operaciones `PATCH` permiten realizar actualizaciones parciales. En campos e
 
 De esta manera se modifica únicamente el teléfono sin reemplazar el resto del subdocumento `contacto`.
 
+Las rutas de actualización ejecutan las validaciones del esquema de Mongoose, de modo que los datos modificados deben respetar las mismas restricciones definidas en los modelos.
+
 ---
 
 # Cliente de consola
@@ -407,9 +409,9 @@ curl -X POST http://localhost:3002/api/medicos \
   "especialidad":"Cardiologia",
   "disponibilidad":[
     {
-      "dia":"lunes",
+      "dia":"2026-11-10",
       "horaDesde":"08:00",
-      "horaHasta":"12:00"
+      "horaHasta":"08:30"
     }
   ],
   "obrasSocialesAceptadas":[
@@ -492,6 +494,14 @@ Instalar las dependencias:
 
 ```bash
 npm install
+```
+
+Este comando instala todas las dependencias declaradas en `package.json`, incluyendo **Inquirer**, utilizado por el cliente interactivo de consola.
+
+No es necesario instalar Inquirer por separado si el proyecto fue clonado con el `package.json` actualizado. En caso de incorporarlo manualmente a un proyecto que todavía no lo tenga declarado, puede instalarse con:
+
+```bash
+npm install inquirer
 ```
 
 ---
@@ -611,7 +621,7 @@ El archivo `.gitignore` debe contener:
 node_modules/
 dist/
 .env
-resguardos_tpi/
+resguardos_db/
 ```
 
 ---
@@ -634,6 +644,8 @@ Con la API en ejecución, el cliente de consola puede iniciarse directamente con
 ```bash
 npx tsx src/cli_crud.ts
 ```
+
+El cliente utiliza **Inquirer** para mostrar menús interactivos y solicitar los datos necesarios para las operaciones CRUD.
 
 ---
 
@@ -723,7 +735,7 @@ Ambos realizan el mismo flujo general:
 Los respaldos se almacenan dentro de:
 
 ```text
-resguardos_tpi/
+resguardos_db/
 ```
 
 Ambos scripts utilizan el mismo directorio base para mantener un criterio uniforme entre Linux/macOS y Windows.
@@ -731,7 +743,7 @@ Ambos scripts utilizan el mismo directorio base para mantener un criterio unifor
 Ejemplo:
 
 ```text
-resguardos_tpi/
+resguardos_db/
 ├── backup_2026-10-27_12-45-10.tar.zst
 ├── backup_2026-10-27_15-30-25.tar.zst
 └── backup_2026-10-27_20-12-41.tar.zst
@@ -801,7 +813,7 @@ Desde la raíz del proyecto:
 El archivo generado tendrá un formato similar a:
 
 ```text
-resguardos_tpi/backup_2026-10-27_18-30-45.tar.zst
+resguardos_db/backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -865,7 +877,7 @@ El script de Windows:
    `YYYY-MM-DD_HH-MM-SS`.
 3. Comprueba que `MONGODB_URI` esté definida.
 4. Comprueba que `mongodump`, `tar` y `zstd` estén disponibles.
-5. Crea un directorio temporal dentro de `resguardos_tpi`.
+5. Crea un directorio temporal dentro de `resguardos_db`.
 6. Ejecuta `mongodump`.
 7. Genera un archivo `.tar`.
 8. Comprime el archivo mediante Zstandard.
@@ -876,7 +888,7 @@ El script de Windows:
 El resultado tendrá un formato similar a:
 
 ```text
-resguardos_tpi\backup_2026-10-27_18-30-45.tar.zst
+resguardos_db\backup_2026-10-27_18-30-45.tar.zst
 ```
 
 ---
@@ -886,7 +898,7 @@ resguardos_tpi\backup_2026-10-27_18-30-45.tar.zst
 ## Linux/macOS
 
 ```bash
-tar --zstd -tf resguardos_tpi/backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_db/backup_FECHA_HORA.tar.zst
 ```
 
 ## Windows
@@ -894,7 +906,7 @@ tar --zstd -tf resguardos_tpi/backup_FECHA_HORA.tar.zst
 Si la versión instalada de `tar` soporta Zstandard:
 
 ```bat
-tar --zstd -tf resguardos_tpi\backup_FECHA_HORA.tar.zst
+tar --zstd -tf resguardos_db\backup_FECHA_HORA.tar.zst
 ```
 
 ---
@@ -907,7 +919,7 @@ tar --zstd -tf resguardos_tpi\backup_FECHA_HORA.tar.zst
 mkdir restauracion
 
 tar --zstd -xf \
-  resguardos_tpi/backup_FECHA_HORA.tar.zst \
+  resguardos_db/backup_FECHA_HORA.tar.zst \
   -C restauracion
 ```
 
@@ -916,7 +928,7 @@ tar --zstd -xf \
 ```bat
 mkdir restauracion
 
-tar --zstd -xf resguardos_tpi\backup_FECHA_HORA.tar.zst -C restauracion
+tar --zstd -xf resguardos_db\backup_FECHA_HORA.tar.zst -C restauracion
 ```
 
 Luego podrán encontrarse los archivos BSON y de metadatos generados originalmente por `mongodump`.

@@ -45,25 +45,32 @@ router.get("/:id", async (req, res) => {
 });
 
 router.patch("/:id", async (req, res) => {
-  const medico = await Medico.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      activo: true
-    },
-    req.body,
-    {
-      new: true,
-      runValidators: true
-    }
-  );
+  try {
+    const medico = await Medico.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        activo: true
+      },
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
-  if (!medico) {
-    return res.status(404).json({
-      error: "Médico no encontrado"
+    if (!medico) {
+      return res.status(404).json({
+        error: "Médico no encontrado"
+      });
+    }
+
+    res.json(medico);
+
+  } catch (error: any) {
+    res.status(400).json({
+      error: error.message
     });
   }
-
-  res.json(medico);
 });
 
 router.delete("/:id", async (req, res) => {
