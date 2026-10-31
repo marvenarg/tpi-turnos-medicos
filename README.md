@@ -1147,9 +1147,9 @@ Las credenciales reales no deben escribirse en archivos versionados ni incluirse
 
 **Grupo 24**
 
-- Nombre Apellido 1
-- Nombre Apellido 2
-- Nombre Apellido 3
+- Marcelo Ventura
+- Francisco Brignani
+- Mario Martini
 
 Trabajo realizado para la materia **Base de Datos II**.
 
