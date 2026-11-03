@@ -13,8 +13,8 @@ router.post("/", async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  try {
-    const { pacienteId, medicoId, fechaHora, motivo } = req.body;
+  try { // se agrega horaHasta para luego generar el turno con el horario completo para potenciales cancelaciones.
+    const { pacienteId, medicoId, fechaHora, horaHasta, motivo } = req.body;
 
     // Verificar existencia del paciente 
     const paciente = await Paciente.findOne({
@@ -27,7 +27,9 @@ router.post("/", async (req, res) => {
     }
 
     // Extrae el día y la hora de la disponibilidad del médico para mostrarlo por consola de forma simple
-    const [dia, restoHora] = fechaHora.split("T"); // corta el formato de fecha y hora
+    // se agrega validación de fecha para ambos tipos de datos: String y Date
+    const fechaStr = typeof fechaHora === "string" ? fechaHora : new Date(fechaHora).toISOString();
+    const [dia, restoHora] = fechaStr.split("T"); // corta el formato de fecha y hora
     const horaDesde = restoHora.substring(0, 5); // formatea la hora  "00:00"
 
     //  Busca al médico y remueve la disponibilidad de ese turno ($pull)
@@ -56,6 +58,7 @@ router.post("/", async (req, res) => {
           pacienteId,
           medicoId,
           fechaHora,
+          horaHasta,
           motivo
         }
       ],
@@ -80,6 +83,7 @@ router.post("/", async (req, res) => {
 
 // Read con populate() - Linking
 router.get("/", async (_req, res) => {
+  try {
   const turnos = await Turno.find({
     activo: true
   })
@@ -92,7 +96,10 @@ router.get("/", async (_req, res) => {
       "nombre apellido especialidad matricula"
     );
 
-  res.json(turnos);
+    res.json(turnos);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudieron obtener los turnos" });
+  }
 });
 
 // Busqueda por ID
@@ -119,54 +126,85 @@ router.get("/:id", async (req, res) => {
 
 // Update
 router.patch("/:id", async (req, res) => {
-  const turno = await Turno.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      activo: true
-    },
-    req.body,
-    {
-      new: true,
-      runValidators: true
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const turno = await Turno.findOne({ _id: req.params.id, activo: true }).session(session);
+
+    if (!turno) {
+      throw new Error("Turno no encontrado");
     }
-  );
 
-  if (!turno) {
-    return res.status(404).json({
-      error: "Turno no encontrado"
-    });
+    // Si el turno se cancela desde otro estado (no baja lógica), igual se devuelve la disponibilidad al médico
+    if (req.body.estado === "cancelado" && turno.estado !== "cancelado") {
+      const fechaStr = typeof turno.fechaHora === "string" ? turno.fechaHora : new Date(turno.fechaHora).toISOString();
+      const [dia, restoHora] = fechaStr.split("T");
+      const horaDesde = restoHora.substring(0, 5);
+      const horaHasta = turno.horaHasta; // Recupera el valor guardado para la baja o cancelación.
+
+      await Medico.findOneAndUpdate(
+        { _id: turno.medicoId },
+        { $push: { disponibilidad: { dia, horaDesde, horaHasta } } },
+        { session, returnDocument: 'after' }
+      );
+    }
+
+    // Fusiona los datos del body y guarda para ejecutar runValidators
+    Object.assign(turno, req.body);
+    await turno.save({ session }); 
+
+    await session.commitTransaction();
+    res.json(turno);
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(400).json({ error: error.message || "No se pudo actualizar el turno" });
+  } finally {
+    session.endSession();
   }
-
-  res.json(turno);
 });
 
-// Delete Lógico
+// Delete Lógico del turno y restitución de la disponibilidad del turno a la lista del médico.
 router.delete("/:id", async (req, res) => {
-  const turno = await Turno.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      activo: true
-    },
-    {
-      activo: false,
-      fechaBaja: new Date(),
-      estado: "cancelado"
-    },
-    {
-      new: true
+  const session = await mongoose.startSession(); // se utiliza en lugar de findOneAndUpdate()
+  session.startTransaction();
+
+  try {
+    const turno = await Turno.findOne({ _id: req.params.id, activo: true }).session(session);
+
+    if (!turno) {
+      throw new Error("Turno no encontrado");
     }
-  );
+    // Se agrega validación de fecha para ambos formatos : String y Date
+    const fechaStr = typeof turno.fechaHora === "string" ? turno.fechaHora : new Date(turno.fechaHora).toISOString();
+    const [dia, restoHora] = fechaStr.split("T");
+    const horaDesde = restoHora.substring(0, 5);
+    const horaHasta = turno.horaHasta; // Recupera el valor guardado para la baja o cancelación.
 
-  if (!turno) {
-    return res.status(404).json({
-      error: "Turno no encontrado"
+    // Devuelve el horario completo al arreglo del médico ($push)
+    await Medico.findOneAndUpdate(
+      { _id: turno.medicoId },
+      { $push: { disponibilidad: { dia, horaDesde, horaHasta } } },
+      { session, returnDocument: 'after' }
+    );
+
+    // Ejecuta la baja lógica
+    turno.activo = false;
+    turno.fechaBaja = new Date();
+    turno.estado = "cancelado";
+    await turno.save({ session });
+
+    await session.commitTransaction();
+    res.json({
+      mensaje: "Turno dado de baja y disponibilidad devuelta al profesional",
+      turno
     });
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(400).json({ error: error.message || "No se pudo cancelar el turno" });
+  } finally {
+    session.endSession();
   }
-
-  res.json({
-    mensaje: "Turno dado de baja",
-    turno
-  });
 });
 
 export default router;
