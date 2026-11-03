@@ -14,12 +14,19 @@ const turnoSchema = new Schema(
       required: true
     },
 
-    fechaHora: {
+    fechaHora: { 
       type: String, 
       required: true,
       trim: true,
       match: [/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):([0-5]\d):00$/, "Formato inválido. Use YYYY-MM-DDTHH:mm:00"]
     },
+
+    horaHasta: { // se agrega horaHasta para tener el dato al momento de restituir disponibilidad en caso de baja o cancelación.
+      type: String,
+      required: [true, "La hora de finalización es obligatoria"],
+      trim: true,
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm"]
+},
 
     motivo: {
       type: String

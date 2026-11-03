@@ -115,7 +115,7 @@ async function crearTurno() {
 
     const opcionesHorarios = medico.disponibilidad.map((slot: any) => ({
         name: `${slot.dia} | Desde: ${slot.horaDesde} - Hasta: ${slot.horaHasta}`,
-        value: { dia: slot.dia, horaDesde: slot.horaDesde }
+        value: { dia: slot.dia, horaDesde: slot.horaDesde, horaHasta: slot.horaHasta } 
     }));
 
     const { horarioSeleccionado, motivo } = await inquirer.prompt([
@@ -141,6 +141,7 @@ async function crearTurno() {
         pacienteId: respuestasIds.pacienteId,
         medicoId: respuestasIds.medicoId,
         fechaHora: fechaHoraIso,
+        horaHasta: horarioSeleccionado.horaHasta, // Para enviar al backend y utilizar en caso de baja y o cancelación.
         motivo: motivo
     };
 
